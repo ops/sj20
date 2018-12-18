@@ -1,0 +1,12 @@
+C64 floppy speeder and disk utility based on VDOS by Edward Carroll 1986
+modified for Jiffy compatibility by 1570 in 2008
+modified for VC-20 and for Jiffy Save by Diddl in 2009
+modified for VC-20 and for basic IO by Diddl in 2010
+v07 version for Vic-20 by nbla000 in 2010
+
+new features by nbla000:
+ - Enabled SAVING/LOADING kernal messages when PRINTADDRESS = 0 (IF PRINTMESSAGE = 1)
+ - Bug fix, Vic hangs when a drive not present was used
+ - Bug fix, Drive not closed when load is finished
+ - Removed unused routines to reduce program size (few bytes)
+ - Added PRINTMESSAGE, LOADPARAMS and SAVEPARAMS compilation parameters
