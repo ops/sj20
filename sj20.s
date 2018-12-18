@@ -37,6 +37,7 @@ FRMBYTE         := $d79e        ; GET BYTE VALUE TO X
 CNVWORD         := $d7f7        ; CONVERT TO WORD VALUE INTO Y/A; $14 (PT3)
 RSPAUSE         := $F160        ; SET TIMER
 SEROUT1         := $E4A0
+SEROUT0         := $E4A9
 SRCLKHI         := $EF84
 SRCLKLO         := $EF8D
 SERGET          := $E4B2
@@ -117,103 +118,140 @@ jiffy_talk:
         .byte   $2c
 jiffy_listen:
         ora     #$20
-        jsr     RSPAUSE         ;SET TIMER
-lEE1C:  pha
-        bit     $94
-        bpl     l6E2B
-        sec
-        ror     $A3
-        jsr     NEW_IECOUT
-        lsr     $94
-        lsr     $A3
-l6E2B:  pla
-        sta     $95
+        jsr     RSPAUSE         ; SET TIMER
+jiffy_listen2:
+        pha                     ; save device address
+        bit     $94             ; test deferred character flag
+        bpl     :+              ; branch if no defered character
+        sec                     ; flag EOI
+        ror     $A3             ; rotate into EOI flag byte
+        jsr     jiffy_send_byte
+        lsr     $94             ; clear deferred character flag
+        lsr     $A3             ; clear EOI flag
+:       pla                     ; device address OR'ed with command
+        sta     $95             ; save as serial defered character
         sei
         lda     #$00
         sta     $A3
-        jsr     SEROUT1         ;DAV hi
+        jsr     SEROUT1         ; set IEC data out high (0)
         cmp     #$3F
-        bne     l6E38
-        jsr     SRCLKHI         ;NDAC lo
-l6E38:  lda     VIA1_PA2
-        ora     #$80
-        sta     VIA1_PA2
-lEE40:  jsr     SRCLKLO         ;PCR bit 1 L�SCHEN
-        jsr     SEROUT1
-        jsr     $EF96
+        bne     l6E38           ; branch if not $3F, this branch will always be taken
 
-OLD_IECOUT:
-        sei
-        jsr     SEROUT1         ;DAV lo
-        jsr     SERGET          ;NRFD hi
-        lsr
-        bcs     l6EB4           ;err DEV NOT PRES
-        jsr     SRCLKHI         ;NDAC lo
-        bit     $A3
-        bpl     l6E66
-l6E5A:  jsr     SERGET          ;NRFD hi
-        lsr
-        bcc     l6E5A
-l6E60:  jsr     SERGET          ;NRFD hi
-        lsr
-        bcs     l6E60
-l6E66:  jsr     SERGET          ;NRFD hi
-        lsr
-        bcc     l6E66
-        jsr     SRCLKLO         ;PCR bit 1 L�SCHEN
+        jsr     SRCLKHI         ;
+
+l6E38:  lda     VIA1_PA2        ; get VIA 1 DRA, no handshake
+        ora     #$80            ; set IEC ATN low (1)
+        sta     VIA1_PA2        ; set VIA 1 DRA, no handshake
+lEE40:  jsr     SRCLKLO         ; set IEC clock out low
+        jsr     SEROUT1         ; set IEC data out high (0)
+        jsr     $EF96           ; 1ms delay
+
+IEC_send_byte:
+        sei ;????
+        jsr     SEROUT1         ; set serial data out high
+        jsr     SERGET          ; get serial clock status
+        lsr                     ; shift serial data to Cb
+        bcs     l6EB4           ; Device_Not_Present
+        jsr     SRCLKHI         ; set serial clock high
+        bit     $A3             ; test EOI flag
+        bpl     l6E66           ; branch if not EOI
+
+; I think this is the EOI sequence so the serial clock has been released
+; and the serial data is being held low by the peripherals. first up
+; wait for the serial data to rise
+
+:       jsr     SERGET          ; get serial clock status
+        lsr                     ; shift serial data to Cb
+        bcc     :-              ; loop if data low
+
+; now the data is high, EOI is signalled by waiting for at least 200us
+; without pulling the serial clock line low again. the listener should
+; respond by pulling the serial data line low
+
+:       jsr     SERGET          ; get serial clock status
+        lsr                     ; shift serial data to Cb
+        bcs     :-              ; loop if data high
+
+; the serial data has gone low ending the EOI sequence, now just wait
+; for the serial data line to go high again or, if this isn't an EOI
+; sequence, just wait for the serial data to go high the first time
+
+l6E66:  jsr     SERGET          ; get serial clock status
+        lsr                     ; shift serial data to Cb
+        bcc     l6E66           ; loop if data low
+
+; serial data is high now pull the clock low, preferably within 60us
+
+        jsr     SRCLKLO         ; set IEC clock out low
+
+; now the Vic has to send the eight bits, LSB first. first it sets the
+; serial data line to reflect the bit in the byte, then it sets the
+; serial clock to high. The serial clock is left high for 26 cycles,
+; 23us on a PAL Vic, before it is again pulled low and the serial data
+; is allowed high again
+
+; The jiffy routine detecs Jiffy devices within the routine
+; jiffy_detect_device and X=2
+
         txa
         pha
-        ldx     #$08            ;8 bit
-l6E73:  lda     VIA1_PA2
+        ldx     #$08            ; eight bits to do
+
+@loop:  lda     VIA1_PA2
         and     #$02
-        bne     l6E7F
-        pla
-        tax
-        jmp     $EEB7           ;ERR TIMEOUT
-l6E7F:  jsr     SEROUT1         ;DAV hi
-        ror     $95
-        bcs     l6E89
-        jsr     $E4A9           ;DAV lo
-l6E89:  jsr     SRCLKHI         ;NDAC lo
+        bne     @skip           ; IEC clock low (1) ?
+        pla                     ; no
+        tax                     ; restore X
+        jmp     $EEB7           ; IEC_Timeout
+@skip:  jsr     SEROUT1         ; set IEC data high (0)
+        ror     $95             ; rotate bit to send into carry
+        bcs     :+              ; branch if bit = 1
+        jsr     SEROUT0         ; set IEC data low (1)
+:       jsr     SRCLKHI         ; set IEC clock high (0)
         lda     VIA2_PCR
-        and     #$DD
-        ora     #$02
+        and     #$DD            ; set data high (0)
+        ora     #$02            ; set clock low (1)
         php
         pha
-        jsr     lF96E
+        jsr     jiffy_detect_device
         pla
         plp
         dex
-        bne     l6E73
+        bne     @loop           ; next bit
         pla
         tax
         jmp     $EEA0
+
 l6EB4:  jmp     SRBAD           ;err DEV NOT PRES
 
         jmp     $eeb7           ;err TIME OUT   POIS!!!!!!!!!!
 
-lF96E:  sta     VIA2_PCR
+.proc jiffy_detect_device
+        sta     VIA2_PCR
         bit     VIA1_PA2
-        bpl     lF997
+        bpl     @out
         cpx     #$02
-        bne     lF997
+        bne     @out
+
         lda     #$02
-        ldx     #$20
-lF97E:  bit     VIA1_PA2
-        beq     lF988
+        ldx     #$20            ; 1e??? wait for jiffy protocol
+@wait:  bit     VIA1_PA2
+        beq     @wait2          ; data high (0) -> Jiffy signal
         dex
-        bne     lF97E
-        beq     lF995
-lF988:  bit     VIA1_PA2
-        beq     lF988
+        bne     @wait
+        beq     @no_jiffy       ; no Jiffy device
+
+@wait2: bit     VIA1_PA2
+        beq     @wait2          ; wait for end of Jiffy signal
         lda     $95
         ror
         ror
         ora     #$40
-        sta     $A3
-lF995:  ldx     #$02
-lF997:  rts
-
+        sta     $A3             ; Flag as Jiffy device
+@no_jiffy:
+        ldx     #$02
+@out:   rts
+.endproc
 
 get_byte:
         sei
@@ -224,13 +262,16 @@ get_byte:
 :       lda     VIA1_PA2
         and     #$03
         beq     :-
+
         lda     #$80
         sta     $9C
+
         txa
         pha
 
         pha
         pla
+
         pha
         pla
 
@@ -244,62 +285,62 @@ get_byte:
         bit     $9C
         bit     $9C
 
-        lda     VIA1_PA2
-        ror
-        ror
+        lda     VIA1_PA2	; get bit 0 & 1
+        ror			; bit 0 (clock) -> bit 7
+        ror			; bit 1 (data ) -> carry
         nop
-        and     #$80
-        ora     VIA1_PA2
-        rol
-        rol
-        sta     $B3
-        lda     VIA1_PA2
-        ror
-        ror
-        and     #$80
+        and     #$80		; mask received bit 0
+        ora     VIA1_PA2	; get bit 2 & 3
+        rol			; A = .....XXX
+        rol			; A = ....XXXX
+        sta     $B3		; store lower nibble
+        lda     VIA1_PA2	; get bit 4 & 5
+        ror			; bit 4 (clock) -> bit 7
+        ror			; bit 5 (data ) -> carry
+        and     #$80		; mask received bit 4
         nop
-        ora     VIA1_PA2
-        rol
-        rol
-        sta     $C0
-        lda     VIA1_PA2
-        stx     VIA2_PCR
-        sta     $9C
-        jsr     lEC4E           ;BYTE AUS 2 NIBBLES
-        sta     $A4
+        ora     VIA1_PA2	; get bit 6 & 7
+        rol			; A = .....XXX
+        rol			; A = ....XXXX
+        sta     $C0		; store upper nibble
+        lda     VIA1_PA2	; get status bits
+        stx     VIA2_PCR	; data out (5) = 1
+        sta     $9C		; save status bits
+        jsr     jiffy_combine_nibbles
+        sta     $A4		; received byte
         pla
         tax
-        lda     $9C
-        ror
-        ror
-        bpl     l7C54
-        bcc     lfC4f
-        lda     #$42
-        jmp     $EEB9           ;ERR staTUS, UNLISTEN
+        lda     $9C		; restore status bits
+        ror			; (clock) -> bit 7
+        ror			; (data ) -> carry
+        bpl     l7C54		; Jiffy_Set_OK   ; clock = 0 -> OK
+        bcc     lfC4f		; Jiffy_Set_EOI  ; data  = 0 -> EOI
+        lda     #$42		; EOI (6) and time out (1) ($42)
+        jmp     $EEB9           ; Set_IEC_Status ;;ERR staTUS, UNLISTEN
 
 send_byte:
-        bit     $94
-        bmi     lEEED
-        sec
+        bit     $94             ; test deferred character flag
+        bmi     @send           ; branch if defered character
+        sec                     ; set deferred character flag
         ror     $94
-        bne     lEEF2
-lEEED:  pha
-        jsr     NEW_IECOUT
+        bne     @out
+@send:  pha
+        jsr     jiffy_send_byte
         pla
-lEEF2:  sta     $95
+@out:   sta     $95             ; save as serial defered character
         clc
         rts
 
-NEW_IECOUT:
+jiffy_send_byte:
         sei
-        bit     $A3
+        bit     $A3		; test to see if the device is a JiffyDOS drive
         bvs     JIFFY_OUT
         lda     $A3
         cmp     #$A0
         bcs     JIFFY_OUT
-        jmp     OLD_IECOUT
+        jmp     IEC_send_byte
 
-lfC4f:  lda     #$40
+lfC4f:  lda     #$40		; bit 6 = EOI
         jsr     ORIOST
 l7C54:  lda     $A4
 l7C56:  cli
@@ -326,12 +367,15 @@ JIFFY_OUT:
         lda     $95
         and     #$0F
         tax
+
         lda     #$02
 :       bit     VIA1_PA2
         beq     :-
+
         lda     VIA2_PCR
         and     #$DD
         sta     $9C
+
         pha
         pla
         pha
@@ -339,6 +383,7 @@ JIFFY_OUT:
         nop
         nop
         nop
+
         sta     VIA2_PCR
         pla
         ora     $9C
@@ -374,8 +419,7 @@ JIFFY_OUT:
         jmp     $EEB7           ; err TIME OUT
 
 
-;--------------BAUT EIN BYTE AUS 2 NIBBLES ZUSAMMEN
-lEC4E:
+jiffy_combine_nibbles:
         lda     $B3
         and     #$0F
         sta     $B3
@@ -386,19 +430,21 @@ lEC4E:
         asl
         ora     $B3
         rts
+
+
 ;--------------JIFFY BYTE IN
 
 
 jiffy_untalk:
-        lda     VIA1_PA2
-        ora     #$80            ; set serial ATN out low
-        sta     VIA1_PA2
+        lda     VIA1_PA2        ; get VIA 1 DRA, no handshake
+        ora     #$80            ; set IEC ATN low (1)
+        sta     VIA1_PA2        ; set VIA 1 DRA, no handshake
         jsr     SRCLKLO
         lda     #$5F
         .byte   $2c
 jiffy_unlisten:
         lda     #$3F
-        jsr     lEE1C           ;PART OF LISTEN
+        jsr     jiffy_listen2
         jsr     $EEC5
         txa
         ldx     #$0B
@@ -516,6 +562,7 @@ sa1:
         jsr     STOREBYTE
 @skip:
 ;#endif
+
 ;--------------JIFFY FASTLOAD INIT
         bit     $A3
         bvs     FB1F            ; Jiffy -->
@@ -535,7 +582,7 @@ MYLO_E:
 FB1F:   jsr     jiffy_untalk
         lda     #$61
         jsr     DISK_TALK
-        ;--------------JIFFY FASTLOAD staRT
+;--------------JIFFY FASTLOAD staRT
         sei
         lda     $B2
         pha
@@ -551,17 +598,21 @@ FB25:   jsr     $F755           ;STOP Taste abfragen
         stx     VIA2_PCR
         lda     #$80
         sta     $9C
+
 :       lda     VIA1_PA2
         lsr
         bcc     :-
-        and     #$01
+
+	and     #$01
         beq     FB67
-        ldx     #$6D
+
+	ldx     #$6D
 :       bit     VIA1_PA2
         beq     FB54
         dex
         bne     :-
-        lda     #$42
+
+	lda     #$42
         .byte   $2c
 FB54:   lda     #$40
         jsr     ORIOST
@@ -607,7 +658,7 @@ FB6E:   pha
         pha
         lda     #<(FB6E-1)
         pha
-        jsr     lEC4E           ; Assemble bytes from 2 nibbles
+        jsr     jiffy_combine_nibbles
 
 STOREBYTE:
         cpy     VERCK
