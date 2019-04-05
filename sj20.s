@@ -2,17 +2,12 @@
 ;;; sj20
 ;;;
 
-        .setcpu "6502"
-
         .include "cbm_kernal.inc"
         .include "vic20.inc"
 
-        .export __LOADADDR__: absolute = 1
-        .segment "LOADADDR"
-        .addr   *+2
+        .segment "SJ20"
 
-        .segment "CODE"
-
+        .export sj20_init
 
 PT3             = $14           ;Pointer
 
@@ -31,7 +26,7 @@ LA              = $B8
 CHRGET          = $0073         ; GET NEXT CHAR
 CHRGOT          = $0079         ; GET LAST CHAR
 
-SY_STROUT       := $cb1e        ; String in AC/YR ausgeben
+PTRSTR          := $CB1E        ; Print zero terminated sting
 FRMNUM          := $cd8a        ; GET NUMERIC VALUE
 FRMBYTE         := $d79e        ; GET BYTE VALUE TO X
 CNVWORD         := $d7f7        ; CONVERT TO WORD VALUE INTO Y/A; $14 (PT3)
@@ -41,7 +36,7 @@ SEROUT0         := $E4A9
 SRCLKHI         := $EF84
 SRCLKLO         := $EF8D
 SERGET          := $E4B2
-SRBAD           := $eeb4
+SRBAD           := $EEB4        ; device not present
 FNDFLNO         := $F3CF        ; Find file number (.X)
 SETFLCH         := $F3DF        ; Set file characteristics of file (.X)
 
@@ -108,10 +103,6 @@ sj20_init:
 .endif ; SJ20_IO
         rts
 
-
-; ==============================================================
-; JIFFY PROCS
-; ==============================================================
 
 jiffy_talk:
         ora     #$40
@@ -430,9 +421,6 @@ jiffy_combine_nibbles:
         asl
         ora     $B3
         rts
-
-
-;--------------JIFFY BYTE IN
 
 
 jiffy_untalk:
@@ -854,7 +842,7 @@ out:    rts
 skip:   pha
         lda     #<MSG_LOAD_FROM
         ldy     #>MSG_LOAD_FROM
-        jsr     SY_STROUT
+        jsr     PTRSTR
         pla
 bb3:    tax
         lda     $01,x
@@ -872,7 +860,7 @@ PRINT_TOADR_2:
         pha
         lda     #<MSG_LOAD_TO
         ldy     #>MSG_LOAD_TO
-        jsr     SY_STROUT
+        jsr     PTRSTR
         pla
         jsr     bb3
         lda     #13

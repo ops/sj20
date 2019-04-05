@@ -3,14 +3,23 @@
 #
 
 PROGRAM_BASE = sj20
-SUFFIX = prg
-PROGRAM := $(PROGRAM_BASE).$(SUFFIX)
+PROGRAM_SUFFIX = prg
+PROGRAM := $(PROGRAM_BASE).$(PROGRAM_SUFFIX)
+
+LIBRARY_BASE = sj20
+LIBRARY_SUFFIX = lib
+LIBRARY := $(LIBRARY_BASE).$(LIBRARY_SUFFIX)
+
 CONFIG = sj20.cfg
 
+IMAGE := sj20.d64
+
+AR := ar65
 AS := ca65
 LD := ld65
 
-START_ADDR ?= 45056
+#START_ADDR ?= 45056
+START_ADDR ?= 8192
 
 SJ20_SAVE ?= 1
 ifeq ($(SJ20_SAVE),1)
@@ -28,16 +37,33 @@ ifeq ($(SJ20_EXT_MESSAGES),1)
 endif
 
 # Additional assembler flags and options.
-ASFLAGS += -t vic20
+ASFLAGS += -t vic20 -g
 
 # Additional linker flags and options.
 LDFLAGS = -C $(CONFIG)
 
 # Set OBJECTS
-OBJECTS := sj20.o
+OBJECTS := main.o
+LIB_OBJECTS := sj20.o
+
+all: $(LIBRARY) $(PROGRAM)
+.PHONY: all image clean
 
 $(PROGRAM): $(CONFIG) $(OBJECTS)
-	$(LD) $(LDFLAGS) -o $@ -S $(START_ADDR) $(OBJECTS)
+	$(LD) $(LDFLAGS) -o $@ -S $(START_ADDR) $(OBJECTS) $(LIBRARY)
+
+$(LIBRARY): $(LIB_OBJECTS)
+	$(AR) $(ARFLAGS) $@ $(LIB_OBJECTS)
+
+image: $(PROGRAM)
+	c1541 -format sj20,os d64 $(IMAGE)
+	c1541 $(IMAGE) -write $(PROGRAM)
+	c1541 $(IMAGE) -write 10
+	c1541 $(IMAGE) -write 8k
+	c1541 $(IMAGE) -write sjload-b0.prg
 
 clean:
-	$(RM) $(OBJECTS) $(PROGRAM) *~
+	$(RM) $(OBJECTS) $(LIB_OBJECTS)
+	$(RM) $(PROGRAM) $(LIBRARY)
+	$(RM) $(IMAGE)
+	$(RM) *~
