@@ -36,6 +36,11 @@ ifeq ($(SJ20_EXT_MESSAGES),1)
   ASFLAGS += -DSJ20_EXT_MESSAGES
 endif
 
+SJ20_BASIC_EXTENSIONS ?=1
+ifeq ($(SJ20_BASIC_EXTENSIONS),1)
+  ASFLAGS += -DSJ20_BASIC_EXTENSIONS
+endif
+
 # Additional assembler flags and options.
 ASFLAGS += -t vic20 -g
 
@@ -49,7 +54,7 @@ LIB_OBJECTS := sj20.o
 all: $(LIBRARY) $(PROGRAM)
 .PHONY: all image clean
 
-$(PROGRAM): $(CONFIG) $(OBJECTS)
+$(PROGRAM): $(CONFIG) $(OBJECTS) $(LIBRARY)
 	$(LD) $(LDFLAGS) -o $@ -S $(START_ADDR) $(OBJECTS) $(LIBRARY)
 
 $(LIBRARY): $(LIB_OBJECTS)

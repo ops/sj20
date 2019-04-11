@@ -9,9 +9,9 @@
         .segment "LOADADDR"
         .addr   *+2
 
-        .segment "CODE"
-
         .import sj20_init
+
+        .segment "CODE"
 
 PTRSTR          := $CB1E        ; Print zero terminated sting
 
