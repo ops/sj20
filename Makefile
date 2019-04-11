@@ -58,9 +58,7 @@ $(LIBRARY): $(LIB_OBJECTS)
 image: $(PROGRAM)
 	c1541 -format sj20,os d64 $(IMAGE)
 	c1541 $(IMAGE) -write $(PROGRAM)
-	c1541 $(IMAGE) -write 10
 	c1541 $(IMAGE) -write 8k
-	c1541 $(IMAGE) -write sjload-b0.prg
 
 clean:
 	$(RM) $(OBJECTS) $(LIB_OBJECTS)
