@@ -26,6 +26,11 @@ ifeq ($(SJ20_SAVE),1)
   ASFLAGS += -DSJ20_SAVE
 endif
 
+SJ20_NTSC ?= 0
+ifeq ($(SJ20_NTSC),1)
+  ASFLAGS += -DSJ20_NTSC
+endif
+
 SJ20_IO ?= 1
 ifeq ($(SJ20_IO),1)
   ASFLAGS += -DSJ20_IO

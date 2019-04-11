@@ -281,12 +281,12 @@ get_byte:
         pha                     ;3
         pla                     ;4
 
-.ifdef NTSC
+.ifdef SJ20_NTSC
         nop                     ;2
         nop                     ;2
 .endif
 
-.ifndef NTSC
+.ifndef SJ20_NTSC
         pha                     ;3
         pla                     ;4
 .endif
@@ -306,13 +306,13 @@ timing:
 ;PAL: 9*(1/1.108405) microseconds = 8.302200083 microseconds
 ;
         bit     $9C         ;timing
-.IFNDEF NTSC
+.ifndef SJ20_NTSC
         bit     $9C         ;timing
-.ENDIF
+.endif
         bit     $9C         ;timing
-.IFDEF NTSC
+.ifdef SJ20_NTSC
         nop
-.ENDIF
+.endif
 
 ;timing:
 ;NTSC: 8*(1/1.022727) microseconds = 7.822224308 microseconds
@@ -324,9 +324,9 @@ timing:
         ror                     ; bit 1 (data ) -> carry
         and     #$80            ; mask received bit 0
 
-.IFNDEF NTSC
+.ifndef SJ20_NTSC
         nop                 ;2
-.ENDIF
+.endif
 
         ora     VIA1_PA2        ; get bit 2 & 3
         rol                     ; A = .....XXX
@@ -338,9 +338,9 @@ timing:
         ror                     ; bit 5 (data ) -> carry
         and     #$80            ; mask received bit 4
 
-.IFNDEF NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
-.ENDIF
+.endif
 
 ;timing:
 ;NTSC: 19*(1/1.022727) microseconds = 18.577782732 microseconds
@@ -449,11 +449,11 @@ JIFFY_OUT:
         pla                     ;4
         pha                     ;3
         pla                     ;4
-.IFNDEF NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
         nop                     ;2
         nop                     ;2
-.ENDIF
+.endif
 ;timing
 ;NTSC: 14
 ;PAL: 16
@@ -462,9 +462,9 @@ JIFFY_OUT:
         pla                     ;3 restore .A (gotten from send table earlier)
         ora     $9C             ;3 OR with handshake value to get value to send
 
-.IFNDEF NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
-.ENDIF
+.endif
 
         sta     VIA2_PCR        ;4 send to drive over serial bus
 
@@ -479,9 +479,9 @@ JIFFY_OUT:
         lda     lFBBA,x         ;4 Get third value to send from table
         ora     $9C             ;3 OR with old $912C
 
-.IFNDEF NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
-.ENDIF
+.endif
 
 ;timing
 ;NTSC: 17
@@ -493,9 +493,9 @@ JIFFY_OUT:
         nop                     ;2 timing
         sta     VIA2_PCR        ;4 send to drive over serial bus
 
-.IFNDEF NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
-.ENDIF
+.endif
 
 ;timing
 ;NTSC: 18/19
@@ -510,9 +510,9 @@ JIFFY_OUT:
         pla                     ;4 restore .X
         tax                     ;2
 
-.IFNDEF NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
-.ENDIF
+.endif
 
 ;timing
 ;NTSC: 13
@@ -755,7 +755,7 @@ FB67:   lda     #$02            ; bit 1 (DATA)
 FB6E:   pha                     ;3 timing
         pla                     ;4 timing
 
-.ifndef NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
 .endif
         lda     $B2             ;3 value to store in $912C, handshaking control register
@@ -772,7 +772,7 @@ FB6E:   pha                     ;3 timing
         lda     VIA1_PA2        ;4 read serial bus
         ror                     ;2 shift bit 0 into carry and bit 1 into bit 0
         ror                     ;2 shift bit 0 into bit 7 and bit 1 into carry
-.ifndef NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
 .endif
 
@@ -784,7 +784,7 @@ FB6E:   pha                     ;3 timing
         ora     VIA1_PA2        ;4 read serial bus to get next 2 bits
         rol                     ;2 shift back first two bits into bits 0 and 1, and
         rol                     ;2 the 2 new bits into bits 2 and 3
-.ifndef NTSC
+.ifndef SJ20_NTSC
         nop                     ;2
 .endif
 
