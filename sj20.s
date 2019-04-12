@@ -137,9 +137,8 @@ lEE40:  jsr     SRCLKLO         ; set IEC clock out low
         jsr     SEROUT1         ; set IEC data out high (0)
         jsr     $EF96           ; 1ms delay
 
-
 IEC_send_byte:
-        sei ;????
+        sei
         jsr     SEROUT1         ; set serial data out high
         jsr     SERGET          ; get serial clock status
         lsr                     ; shift serial data to Cb
@@ -216,8 +215,6 @@ l6E66:  jsr     SERGET          ; get serial clock status
 
 l6EB4:  jmp     SRBAD           ;err DEV NOT PRES
 
-        jmp     $eeb7           ;err TIME OUT   POIS!!!!!!!!!!
-
 
 .proc jiffy_detect_device
         sta     VIA2_PCR        ; store in serial bus I/O port
@@ -246,7 +243,7 @@ l6EB4:  jmp     SRBAD           ;err DEV NOT PRES
 @out:   rts
 .endproc
 
-;----------------JIFFY BYTE IN
+
 get_byte:
         sei
         bit     $A3             ; is the device JiffyDOS equipped?
@@ -259,7 +256,6 @@ get_byte:
 ;NTSC: (18+11+14+8+8+23+19) * (1/1.022727) = 98.75558189 microseconds
 ;PAL:  (18+14+14+9+10+25+19) * (1/1.108405) = 98.339505867 microseconds
 ;if the PAL version were to be used on NTSC, it would take 106.577806199 microseconds.
-;
 
 ;timing:
 ;NTSC: 18*(1/1.022727) microseconds = 17.6000004693 microseconds
@@ -304,12 +300,12 @@ get_byte:
 timing:
 ;NTSC: 8*(1/1.022727) microseconds = 7.822224308 microseconds
 ;PAL: 9*(1/1.108405) microseconds = 8.302200083 microseconds
-;
-        bit     $9C         ;timing
+
+        bit     $9C             ;timing
 .ifndef SJ20_NTSC
-        bit     $9C         ;timing
+        bit     $9C             ;timing
 .endif
-        bit     $9C         ;timing
+        bit     $9C             ;timing
 .ifdef SJ20_NTSC
         nop
 .endif
@@ -317,7 +313,6 @@ timing:
 ;timing:
 ;NTSC: 8*(1/1.022727) microseconds = 7.822224308 microseconds
 ;PAL: 10*(1/1.108405) microseconds = 9.02197305 microseconds
-;
 
         lda     VIA1_PA2        ; get bit 0 & 1
         ror                     ; bit 0 (clock) -> bit 7
@@ -325,7 +320,7 @@ timing:
         and     #$80            ; mask received bit 0
 
 .ifndef SJ20_NTSC
-        nop                 ;2
+        nop                     ;2
 .endif
 
         ora     VIA1_PA2        ; get bit 2 & 3
@@ -403,7 +398,7 @@ l7C56:  cli
 JIFFY_OUT:
 ;JIFFYDOS PATCH SEND DATA ON SERIAL LINE in C64 docs
 ; the bits in BSOUR are sent in the following order %22114334
-;
+
         txa             ; store .X on stack
         pha
         lda     $95     ; BSOUR, the byte to send
@@ -445,6 +440,7 @@ JIFFY_OUT:
 ;timing
 ;NTSC: 14 *
 ;PAL: 20 *
+
         pha                     ;3
         pla                     ;4
         pha                     ;3
@@ -454,6 +450,7 @@ JIFFY_OUT:
         nop                     ;2
         nop                     ;2
 .endif
+
 ;timing
 ;NTSC: 14
 ;PAL: 16
@@ -599,6 +596,7 @@ MY_IECLOAD_0:
         jsr     IECNAMOUT
         bcc     :+
         rts
+
 :       ldy     #$00
         lda     (FNAM),y
         cmp     #'$'
@@ -669,7 +667,6 @@ sa1:
 @skip:
 .endif ; SJ20_BASIC_EXTENSIONS
 
-;--------------JIFFY FASTLOAD INIT
         bit     $A3
         bvs     FB1F            ; Jiffy -->
         jsr     $F58A           ; KERN_LOAD
@@ -684,11 +681,9 @@ MYLO_E:
         ldy     LOADEND+1
         rts
 
-;--------------JIFFY FASTLOAD INIT
 FB1F:   jsr     jiffy_untalk
         lda     #$61
         jsr     DISK_TALK
-;--------------JIFFY FASTLOAD staRT
         sei
         lda     $B2
         pha
@@ -737,7 +732,6 @@ err:    jmp     $F6CB           ; failure: UNLISTEN, CLOSE, BREAK
 
 FB67:   lda     #$02            ; bit 1 (DATA)
 
-;--------------------------------------
 ;timing (resync point):
 ;total timing
 ;NTSC: (6+25+13+10+25)*(1/1.022727) = 75.288908966 microseconds
@@ -808,7 +802,6 @@ FB6E:   pha                     ;3 timing
         pha
         jsr     jiffy_combine_nibbles
 
-
 STOREBYTE:
         cpy     VERCK           ; verify?
         bne     FBB0            ; yes
@@ -827,7 +820,7 @@ FBB0:   ;VERIFY
 .ifdef SJ20_SAVE
 
 ; ========================================================================
-; MY SAVE                   ENDADDR   = ($AE/$AF)    staRTADDR = ($C1/$C2)
+; MY SAVE                   ENDADDR   = ($AE/$AF)    STARTADDR = ($C1/$C2)
 ;
 ; SAVESTART = $c1
 ; LOADPTR   = $c3
@@ -889,7 +882,7 @@ MYSA_00:
         jsr     DISK_CLOSE_SA
         jmp     $f6ce
 MYSA_02:
-        jsr     $fd1b           ;incR ADDR
+        jsr     $fd1b           ; inc ADDR
         bne     MYSA_00
 MYSA_E0:
         jsr     jiffy_unlisten
