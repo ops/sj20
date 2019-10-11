@@ -1,5 +1,9 @@
 # sj20
 
+JiffyDOS protocol implementation for VIC-20
+
+Includes code and information from the following sources:
+
 https://www.forum64.de/index.php?thread/35519-sjload-20-v07/
 
 https://github.com/gummyworm/skippydos
