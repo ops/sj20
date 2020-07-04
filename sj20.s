@@ -253,13 +253,13 @@ get_byte:
 
 ;Read a byte in using the SJLoad routine.
 ;total time for 1 byte received:
-;NTSC: (18+11+14+8+8+23+19) * (1/1.022727) = 98.75558189 microseconds
-;PAL:  (18+14+14+9+10+25+19) * (1/1.108405) = 98.339505867 microseconds
+;NTSC: (18+11+14+8+8+23+19)  * (1/1.022727) = 98.75558189 microseconds
+; PAL: (18+14+14+9+10+25+19) * (1/1.108405) = 98.339505867 microseconds
 ;if the PAL version were to be used on NTSC, it would take 106.577806199 microseconds.
 
 ;timing:
 ;NTSC: 18*(1/1.022727) microseconds = 17.6000004693 microseconds
-;PAL: 18*(1/1.108405) microseconds = 16.239551428 microseconds
+; PAL: 18*(1/1.108405) microseconds = 16.239551428 microseconds
 
 :       lda     VIA1_PA2        ;4 serial bus
         and     #$03            ;2 mask clock-in and data-in bits
@@ -272,7 +272,7 @@ get_byte:
 
 ;timing:
 ;NTSC: 11*(1/1.022727) microseconds = 10.755558424 microseconds
-;PAL: 14*(1/1.108405) microseconds = 12.630762221 microseconds
+; PAL: 14*(1/1.108405) microseconds = 12.630762221 microseconds
 
         pha                     ;3
         pla                     ;4
@@ -289,7 +289,7 @@ get_byte:
 
 ;timing:
 ;NTSC: 14*(1/1.022727) microseconds = 13.688892539 microseconds
-;PAL: 14*(1/1.022727) microseconds = 12.630762221 microseconds
+; PAL: 14*(1/1.022727) microseconds = 12.630762221 microseconds
 
         lda     VIA2_PCR        ;4 handshaking (bring serial bus data line high)
         and     #$DD            ;2 handshaking cont'd
@@ -299,7 +299,7 @@ get_byte:
 
 timing:
 ;NTSC: 8*(1/1.022727) microseconds = 7.822224308 microseconds
-;PAL: 9*(1/1.108405) microseconds = 8.302200083 microseconds
+; PAL: 9*(1/1.108405) microseconds = 8.302200083 microseconds
 
         bit     $9C             ;timing
 .ifndef SJ20_NTSC
@@ -311,8 +311,8 @@ timing:
 .endif
 
 ;timing:
-;NTSC: 8*(1/1.022727) microseconds = 7.822224308 microseconds
-;PAL: 10*(1/1.108405) microseconds = 9.02197305 microseconds
+;NTSC:  8*(1/1.022727) microseconds = 7.822224308 microseconds
+; PAL: 10*(1/1.108405) microseconds = 9.02197305 microseconds
 
         lda     VIA1_PA2        ; get bit 0 & 1
         ror                     ; bit 0 (clock) -> bit 7
@@ -339,7 +339,7 @@ timing:
 
 ;timing:
 ;NTSC: 19*(1/1.022727) microseconds = 18.577782732 microseconds
-;PAL: 19*(1/1.108405) microseconds = 17.141748729 microseconds
+; PAL: 19*(1/1.108405) microseconds = 17.141748729 microseconds
 
         ora     VIA1_PA2        ; get bit 6 & 7
         rol                     ; A = .....XXX
@@ -424,11 +424,11 @@ JIFFY_OUT:
 ;start of timing sensitive portion
 ;total time:
 ;NTSC: (15+14+20+17+18/19+13) * (1/1.022727) = 94.844469736 microseconds
-;PAL:  (15+16+22+19+20/21+13) * (1/1.108405) = 94.73071666 microseconds
+; PAL: (15+16+22+19+20/21+13) * (1/1.108405) = 94.73071666 microseconds
 
 ;timing:
 ;NTSC: 15
-;PAL: 15
+; PAL: 15
 
 :       bit     VIA1_PA2        ;4 wait for bit 1 (data) of $911F to be set
         beq     :-              ;2 loop until data is 1
@@ -439,7 +439,7 @@ JIFFY_OUT:
 
 ;timing
 ;NTSC: 14 *
-;PAL: 20 *
+; PAL: 20 *
 
         pha                     ;3
         pla                     ;4
@@ -453,7 +453,7 @@ JIFFY_OUT:
 
 ;timing
 ;NTSC: 14
-;PAL: 16
+; PAL: 16
 
         sta     VIA2_PCR        ;4 handshaking - bring the data line high
         pla                     ;3 restore .A (gotten from send table earlier)
@@ -467,7 +467,7 @@ JIFFY_OUT:
 
 ;timing
 ;NTSC: 20
-;PAL: 22
+; PAL: 22
 
         lda     $B3             ;3 get 2nd value to send
         ora     $9C             ;3 OR with old $912C
@@ -482,7 +482,7 @@ JIFFY_OUT:
 
 ;timing
 ;NTSC: 17
-;PAL: 19
+; PAL: 19
 
         sta     VIA2_PCR        ;4 send to drive over serial bus
         lda     lF39E,x         ;4 Get fourth value to send from table
@@ -496,7 +496,7 @@ JIFFY_OUT:
 
 ;timing
 ;NTSC: 18/19
-;PAL: 20/21
+; PAL: 20/21
 
         and     #$DD            ;2
         bit     $A3             ;3 is bit 7 of LDFLAG set?
@@ -513,7 +513,7 @@ JIFFY_OUT:
 
 ;timing
 ;NTSC: 13
-;PAL: 13
+; PAL: 13
 
         lda     $9C             ;3 get old $912C
         ora     #$02            ;2 OR to bring data line low
@@ -693,8 +693,8 @@ FB25:   jsr     $F755           ; read $912F and wait for value to settle
         beq     FB5B
 
 ;timing:
-;NTSC: 35*(1/1.022727) = 34.222231348 microseconds
-;PAL: 35*(1/1.1108405) = 31.507673694 microseconds
+;NTSC: 35*(1/1.022727)  = 34.222231348 microseconds
+; PAL: 35*(1/1.1108405) = 31.507673694 microseconds
 
         lda     VIA2_PCR        ;4 read peripheral control register
         and     #$DD            ;2 turn off bits 5 and 1 (bring serial bus data line high)
@@ -734,17 +734,17 @@ FB67:   lda     #$02            ; bit 1 (DATA)
 
 ;timing (resync point):
 ;total timing
-;NTSC: (6+25+13+10+25)*(1/1.022727) = 75.288908966 microseconds
-;PAL: (6+25+15+12+25)*(1/1.1108405) = 74.718197617 microseconds
+;NTSC: (6+25+13+10+25)*(1/1.022727)  = 75.288908966 microseconds
+; PAL: (6+25+15+12+25)*(1/1.1108405) = 74.718197617 microseconds
 ;NTSC: 6*(1/1.022727)
-;PAL: 6*(1/1.1108405)
+; PAL: 6*(1/1.1108405)
 
 :       bit     VIA1_PA2        ;4 check DATA
         beq     :-
 
 ;timing:
-;NTSC: 23*(1/1.022727) = 22.4888948859 microseconds
-;PAL: 25*(1/1.1108405) = 22.50548121 microseconds
+;NTSC: 23*(1/1.022727)  = 22.4888948859 microseconds
+; PAL: 25*(1/1.1108405) = 22.50548121 microseconds
 
 FB6E:   pha                     ;3 timing
         pla                     ;4 timing
@@ -759,8 +759,8 @@ FB6E:   pha                     ;3 timing
         beq     FB25            ;2/3 if zero, start over
 
 ;timing (1 + 14):
-;NTSC: 13*(1/1.022727) = 14.666670578 microseconds
-;PAL: 15*(1/1.1108405) = 13.503288726 microseconds
+;NTSC: 13*(1/1.022727)  = 14.666670578 microseconds
+; PAL: 15*(1/1.1108405) = 13.503288726 microseconds
 
         stx     VIA2_PCR        ;4 handshaking - bring serial bus DATA line high
         lda     VIA1_PA2        ;4 read serial bus
@@ -772,7 +772,7 @@ FB6E:   pha                     ;3 timing
 
 ;timing (12):
 ;NTSC: 10*(1/1.022727) = 11.733336462 microseconds
-;PAL 12*(1/1.1108405)  = 10.802630981 microseconds
+; PAL 12*(1/1.1108405) = 10.802630981 microseconds
 
         and     #$80            ;2 clear the bits we don't care about
         ora     VIA1_PA2        ;4 read serial bus to get next 2 bits
@@ -783,8 +783,8 @@ FB6E:   pha                     ;3 timing
 .endif
 
 ;timing: (25)
-;NTSC: 25*(1/1.022727) = 24.444450963 microseconds
-;PAL: 25*(1/1.1108405) = 22.505481201 microseconds
+;NTSC: 25*(1/1.022727)  = 24.444450963 microseconds
+; PAL: 25*(1/1.1108405) = 22.505481201 microseconds
 
         sta     $B3             ;3 save first nybble
         lda     VIA1_PA2        ;4 read serial bus again
