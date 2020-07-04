@@ -26,7 +26,7 @@ LA              = $B8
 CHRGET          = $0073         ; GET NEXT CHAR
 CHRGOT          = $0079         ; GET LAST CHAR
 
-PTRSTR          := $CB1E        ; Print zero terminated sting
+PTRSTR          := $CB1E        ; Print zero terminated string
 FRMNUM          := $cd8a        ; GET NUMERIC VALUE
 FRMBYTE         := $d79e        ; GET BYTE VALUE TO X
 CNVWORD         := $d7f7        ; CONVERT TO WORD VALUE INTO Y/A; $14 (PT3)
