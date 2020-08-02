@@ -590,7 +590,7 @@ MY_IECLOAD_0:
         sta     VERCK
         lda     #0
         sta     LA              ; file# - flag for first byte
-;        jsr     $f647           ; Print "SEARCHING"
+        jsr     $f647           ; Print "SEARCHING"
         lda     #$f0            ; channel
         jsr     DISK_LISTEN
         jsr     IECNAMOUT
