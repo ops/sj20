@@ -8,7 +8,6 @@ LIBRARY := $(LIBRARY_BASE).$(LIBRARY_SUFFIX)
 
 AR := ar65
 AS := ca65
-LD := ld65
 
 SJ20_SAVE ?= 1
 ifeq ($(SJ20_SAVE),1)
