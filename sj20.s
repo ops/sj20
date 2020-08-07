@@ -215,8 +215,6 @@ l6E66:  jsr     SERGET          ; get serial clock status
 
 l6EB4:  jmp     SRBAD           ;err DEV NOT PRES
 
-        jmp     $eeb7           ;err TIME OUT ?????????????????????????
-
 .proc jiffy_detect_device
         sta     VIA2_PCR        ; store in serial bus I/O port
         bit     VIA1_PA2        ; test ATN, attention
