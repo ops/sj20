@@ -1021,8 +1021,6 @@ PRINT_TOADR_2:
         jsr     PTRSTR
         pla
         jmp     bb3
-;        lda     #13
-;        jmp     BSOUT
 
         ; Print HEX value in X/A
 .proc hex_out
