@@ -215,6 +215,7 @@ l6E66:  jsr     SERGET          ; get serial clock status
 
 l6EB4:  jmp     SRBAD           ;err DEV NOT PRES
 
+        jmp     $eeb7           ;err TIME OUT ?????????????????????????
 
 .proc jiffy_detect_device
         sta     VIA2_PCR        ; store in serial bus I/O port
@@ -572,10 +573,18 @@ jiffy_listensa:
 
 ;--------------JIFFY DATA TABLE
 lFCCE:  .byte   $00,$02,$20,$22,$00,$02,$20,$22,$00,$02,$20,$22,$00,$02,$20,$22
+lFCCE_end:
+        .assert >(lFCCE_end - 1) = >lFCCE, error, "lFCCE mustn't cross page boundary"
+        ; If you get this error, you linker config may need something like this:
+        ; RODATA:   load = RAM, type = ro, align = $10;
 
 lFBBA:  .byte   $00,$00,$20,$20,$00,$00,$20,$20,$02,$02,$22,$22,$02,$02,$22,$22
+lFBBA_end:
+        .assert >(lFBBA_end - 1) = >lFBBA, error, "lFBBA mustn't cross page boundary"
 
 lF39E:  .byte   $00,$20,$00,$20,$02,$22,$02,$22,$00,$20,$00,$20,$02,$22,$02,$22
+lF39E_end:
+        .assert >(lF39E_end - 1) = >lF39E, error, "lF39E mustn't cross page boundary"
 ;--------------JIFFY DATA TABLE
 
 
@@ -590,7 +599,7 @@ MY_IECLOAD_0:
         sta     VERCK
         lda     #0
         sta     LA              ; file# - flag for first byte
-        jsr     $f647           ; Print "SEARCHING"
+        jsr     $f647           ; Print "SEARCHING" -- ops
         lda     #$f0            ; channel
         jsr     DISK_LISTEN
         jsr     IECNAMOUT
@@ -1011,9 +1020,9 @@ PRINT_TOADR_2:
         ldy     #>MSG_LOAD_TO
         jsr     PTRSTR
         pla
-        jsr     bb3
-        lda     #13
-        jmp     BSOUT
+        jmp     bb3
+;        lda     #13
+;        jmp     BSOUT
 
         ; Print HEX value in X/A
 .proc hex_out
@@ -1041,7 +1050,7 @@ HEX1:   clc
 .endproc
 
 MSG_LOAD_FROM:
-        .byte   " from ", 0
+        .byte   13, " from ", 0
 MSG_LOAD_TO:
         .byte   " to ", 0
 
