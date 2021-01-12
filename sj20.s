@@ -208,6 +208,7 @@ l6E66:  jsr     SERGET          ; get serial clock status
         tax
         jmp     $EEA0
 
+
 .proc jiffy_detect_device
         sta     VIA2_PCR        ; store in serial bus I/O port
         bit     VIA1_PA2        ; test ATN, attention
@@ -243,15 +244,15 @@ get_byte:
         lda     #$00            ; no,
         jmp     $EF1C           ; drive not jiffydos equipped, use original routine
 
-;Read a byte in using the SJLoad routine.
-;total time for 1 byte received:
-;NTSC: (18+11+14+8+8+23+19)  * (1/1.022727) = 98.75558189 microseconds
-; PAL: (18+14+14+9+10+25+19) * (1/1.108405) = 98.339505867 microseconds
-;if the PAL version were to be used on NTSC, it would take 106.577806199 microseconds.
+; Read a byte in using the SJLoad routine.
+; total time for 1 byte received:
+; NTSC: (18+11+14+8+ 8+23+19) * (1/1.022727) = 98.755581890 microseconds
+;  PAL: (18+14+14+9+10+25+19) * (1/1.108405) = 98.339505867 microseconds
+; if the PAL version were to be used on NTSC, it would take 106.577806199 microseconds.
 
-;timing:
-;NTSC: 18*(1/1.022727) microseconds = 17.6000004693 microseconds
-; PAL: 18*(1/1.108405) microseconds = 16.2395514280 microseconds
+; timing:
+; NTSC: 18*(1/1.022727) microseconds = 17.6000004693 microseconds
+;  PAL: 18*(1/1.108405) microseconds = 16.2395514280 microseconds
 
 :       lda     VIA1_PA2        ;4 serial bus
         and     #$03            ;2 mask clock-in and data-in bits
@@ -262,9 +263,9 @@ get_byte:
         txa                     ;2 save .X
         pha                     ;3 i'm serious
 
-;timing:
-;NTSC: 11*(1/1.022727) microseconds = 10.755558424 microseconds
-; PAL: 14*(1/1.108405) microseconds = 12.630762221 microseconds
+; timing:
+; NTSC: 11*(1/1.022727) microseconds = 10.755558424 microseconds
+;  PAL: 14*(1/1.108405) microseconds = 12.630762221 microseconds
 
         pha                     ;3
         pla                     ;4
@@ -279,9 +280,9 @@ get_byte:
         pla                     ;4
 .endif
 
-;timing:
-;NTSC: 14*(1/1.022727) microseconds = 13.688892539 microseconds
-; PAL: 14*(1/1.022727) microseconds = 12.630762221 microseconds
+; timing:
+; NTSC: 14*(1/1.022727) microseconds = 13.688892539 microseconds
+;  PAL: 14*(1/1.108405) microseconds = 12.630762221 microseconds
 
         lda     VIA2_PCR        ;4 handshaking (bring serial bus data line high)
         and     #$DD            ;2 handshaking cont'd
@@ -289,9 +290,9 @@ get_byte:
         ora     #$20            ;2 set bit 5=1
         tax                     ;2 store
 
-timing:
-;NTSC: 8*(1/1.022727) microseconds = 7.822224308 microseconds
-; PAL: 9*(1/1.108405) microseconds = 8.302200083 microseconds
+; timing:
+; NTSC: 8*(1/1.022727) microseconds = 7.822224308 microseconds
+;  PAL: 9*(1/1.108405) microseconds = 8.302200083 microseconds
 
         bit     $9C             ;timing
 .ifndef SJ20_NTSC
@@ -302,9 +303,9 @@ timing:
         nop
 .endif
 
-;timing:
-;NTSC:  8*(1/1.022727) microseconds = 7.822224308 microseconds
-; PAL: 10*(1/1.108405) microseconds = 9.021973050 microseconds
+; timing:
+; NTSC:  8*(1/1.022727) microseconds = 7.822224308 microseconds
+;  PAL: 10*(1/1.108405) microseconds = 9.021973050 microseconds
 
         lda     VIA1_PA2        ; get bit 0 & 1
         ror                     ; bit 0 (clock) -> bit 7
@@ -329,9 +330,9 @@ timing:
         nop                     ;2
 .endif
 
-;timing:
-;NTSC: 19*(1/1.022727) microseconds = 18.577782732 microseconds
-; PAL: 19*(1/1.108405) microseconds = 17.141748729 microseconds
+; timing:
+; NTSC: 19*(1/1.022727) microseconds = 18.577782732 microseconds
+;  PAL: 19*(1/1.108405) microseconds = 17.141748729 microseconds
 
         ora     VIA1_PA2        ; get bit 6 & 7
         rol                     ; A = .....XXX
@@ -339,7 +340,7 @@ timing:
         sta     $C0             ; store upper nibble
         lda     VIA1_PA2        ; get status bits
         stx     VIA2_PCR        ; data out (5) = 1
-;end of timing sensitive portion
+; end of timing sensitive portion
 
         sta     $9C             ; save status bits
         jsr     jiffy_combine_nibbles
@@ -388,7 +389,6 @@ l7C56:  cli
 
 
 JIFFY_OUT:
-;JIFFYDOS PATCH SEND DATA ON SERIAL LINE in C64 docs
 ; the bits in BSOUR are sent in the following order %22114334
 
         txa             ; store .X on stack
@@ -399,13 +399,13 @@ JIFFY_OUT:
         lsr
         lsr
         tax             ; give to .X
-        lda     lFCCE,x ; get the corresponding data from the send table
+        lda     stab1,x ; get the corresponding data from the send table
         pha             ; save it
         txa             ; restore .A to .X
         lsr             ; next 2 bits
         lsr
         tax             ; give to .X
-        lda     lFCCE,x ; get the corresponding send table data again
+        lda     stab1,x ; get the corresponding send table data again
         sta     $B3
         lda     $95     ; restore BSOUR
         and     #$0F    ; get LSB of BSOUR
@@ -413,14 +413,14 @@ JIFFY_OUT:
 
         lda     #$02
 
-;start of timing sensitive portion
-;total time:
-;NTSC: (15+14+20+17+18/19+13) * (1/1.022727) = 94.844469736 microseconds
-; PAL: (15+16+22+19+20/21+13) * (1/1.108405) = 94.730716660 microseconds
+; start of timing sensitive portion
+; total time:
+; NTSC: (15+14+20+17+18/19+13) * (1/1.022727) = 94.844469736 microseconds
+;  PAL: (15+16+22+19+20/21+13) * (1/1.108405) = 94.730716660 microseconds
 
-;timing:
-;NTSC: 15
-; PAL: 15
+; timing:
+; NTSC: 15
+;  PAL: 15
 
 :       bit     VIA1_PA2        ;4 wait for bit 1 (data) of $911F to be set
         beq     :-              ;2 loop until data is 1
@@ -429,9 +429,9 @@ JIFFY_OUT:
         and     #$DD            ;2 yep
         sta     $9C             ;3 save what we want to handshake.
 
-;timing
-;NTSC: 14 *
-; PAL: 20 *
+; timing
+; NTSC: 14
+;  PAL: 20
 
         pha                     ;3
         pla                     ;4
@@ -443,9 +443,9 @@ JIFFY_OUT:
         nop                     ;2
 .endif
 
-;timing
-;NTSC: 14
-; PAL: 16
+; timing
+; NTSC: 14
+;  PAL: 16
 
         sta     VIA2_PCR        ;4 handshaking - bring the data line high
         pla                     ;3 restore .A (gotten from send table earlier)
@@ -457,27 +457,27 @@ JIFFY_OUT:
 
         sta     VIA2_PCR        ;4 send to drive over serial bus
 
-;timing
-;NTSC: 20
-; PAL: 22
+; timing
+; NTSC: 20
+;  PAL: 22
 
         lda     $B3             ;3 get 2nd value to send
         ora     $9C             ;3 OR with old $912C
         ora     $9C             ;3 timing
         sta     VIA2_PCR        ;4 send to drive over serial bus
-        lda     lFBBA,x         ;4 Get third value to send from table
+        lda     stab2,x         ;4 Get third value to send from table
         ora     $9C             ;3 OR with old $912C
 
 .ifndef SJ20_NTSC
         nop                     ;2
 .endif
 
-;timing
-;NTSC: 17
-; PAL: 19
+; timing
+; NTSC: 17
+;  PAL: 19
 
         sta     VIA2_PCR        ;4 send to drive over serial bus
-        lda     lF39E,x         ;4 Get fourth value to send from table
+        lda     stab3,x         ;4 Get fourth value to send from table
         ora     $9C             ;3 OR with old $912C
         nop                     ;2 timing
         sta     VIA2_PCR        ;4 send to drive over serial bus
@@ -486,9 +486,9 @@ JIFFY_OUT:
         nop                     ;2
 .endif
 
-;timing
-;NTSC: 18/19
-; PAL: 20/21
+; timing
+; NTSC: 18/19
+;  PAL: 20/21
 
         and     #$DD            ;2
         bit     $A3             ;3 is bit 7 of LDFLAG set?
@@ -503,16 +503,16 @@ JIFFY_OUT:
         nop                     ;2
 .endif
 
-;timing
-;NTSC: 13
-; PAL: 13
+; timing
+; NTSC: 13
+;  PAL: 13
 
         lda     $9C             ;3 get old $912C
         ora     #$02            ;2 OR to bring data line low
         sta     VIA2_PCR        ;4 handshaking - bring data line low
         lda     VIA1_PA2        ;4 read serial bus
         and     #$02            ;2 is data line low?
-;end of timing sensitive portion
+; end of timing sensitive portion
         beq     l7C56           ; yes, we're done
         jmp     $EEB7           ; no, err TIME OUT
 
@@ -562,21 +562,17 @@ jiffy_listensa:
         jmp     $eec5
 
 
-;--------------JIFFY DATA TABLE
-lFCCE:  .byte   $00,$02,$20,$22,$00,$02,$20,$22,$00,$02,$20,$22,$00,$02,$20,$22
-lFCCE_end:
-        .assert >(lFCCE_end - 1) = >lFCCE, error, "lFCCE mustn't cross page boundary"
-        ; If you get this error, you linker config may need something like this:
-        ; RODATA:   load = RAM, type = ro, align = $10;
+stab1:  .byte   $00,$02,$20,$22,$00,$02,$20,$22,$00,$02,$20,$22,$00,$02,$20,$22
+stab1_end:
+        .assert >(stab1_end - 1) = >stab1, error, "stab1 mustn't cross page boundary"
 
-lFBBA:  .byte   $00,$00,$20,$20,$00,$00,$20,$20,$02,$02,$22,$22,$02,$02,$22,$22
-lFBBA_end:
-        .assert >(lFBBA_end - 1) = >lFBBA, error, "lFBBA mustn't cross page boundary"
+stab2:  .byte   $00,$00,$20,$20,$00,$00,$20,$20,$02,$02,$22,$22,$02,$02,$22,$22
+stab2_end:
+        .assert >(stab2_end - 1) = >stab2, error, "stab2 mustn't cross page boundary"
 
-lF39E:  .byte   $00,$20,$00,$20,$02,$22,$02,$22,$00,$20,$00,$20,$02,$22,$02,$22
-lF39E_end:
-        .assert >(lF39E_end - 1) = >lF39E, error, "lF39E mustn't cross page boundary"
-;--------------JIFFY DATA TABLE
+stab3:  .byte   $00,$20,$00,$20,$02,$22,$02,$22,$00,$20,$00,$20,$02,$22,$02,$22
+stab3_end:
+        .assert >(stab3_end - 1) = >stab3, error, "stab3 mustn't cross page boundary"
 
 
 jiffy_load:                     ; "fnam",PA,SA[,loadadr]
@@ -590,7 +586,7 @@ MY_IECLOAD_0:
         sta     VERCK
         lda     #0
         sta     LA              ; file# - flag for first byte
-        jsr     $f647           ; Print "SEARCHING" -- ops
+        jsr     $f647           ; Print "SEARCHING"
         lda     #$f0            ; channel
         jsr     DISK_LISTEN
         jsr     IECNAMOUT
@@ -658,7 +654,7 @@ sa1:
         dex
         dex
         bne     @skip           ; SA!=2 -->
-        ;STORE FIRST TWO BYTES
+        ; STORE FIRST TWO BYTES
         ldy     #0
         pla
         jsr     STOREBYTE
@@ -692,9 +688,9 @@ FB25:   jsr     $F755           ; read $912F and wait for value to settle
         cmp     #$FE
         beq     FB5B
 
-;timing:
-;NTSC: 35*(1/1.0227270) = 34.222231348 microseconds
-; PAL: 35*(1/1.1108405) = 31.507673694 microseconds
+; timing:
+; NTSC: 35*(1/1.0227270) = 34.222231348 microseconds
+;  PAL: 35*(1/1.1108405) = 31.507673694 microseconds
 
         lda     VIA2_PCR        ;4 read peripheral control register
         and     #$DD            ;2 turn off bits 5 and 1 (bring serial bus data line high)
@@ -732,19 +728,20 @@ err:    jmp     $F6CB           ; failure: UNLISTEN, CLOSE, BREAK
 
 FB67:   lda     #$02            ; bit 1 (DATA)
 
-;timing (resync point):
-;total timing
-;NTSC: (6+25+13+10+25)*(1/1.0227270) = 75.288908966 microseconds
-; PAL: (6+25+15+12+25)*(1/1.1108405) = 74.718197617 microseconds
-;NTSC: 6*(1/1.022727)
-; PAL: 6*(1/1.1108405)
+; timing (resync point):
+; total timing
+; NTSC: (6+25+13+10+25)*(1/1.0227270) = 75.288908966 microseconds
+;  PAL: (6+25+15+12+25)*(1/1.1108405) = 74.718197617 microseconds
+
+; NTSC: 6*(1/1.022727)
+;  PAL: 6*(1/1.1108405)
 
 :       bit     VIA1_PA2        ;4 check DATA
         beq     :-
 
-;timing:
-;NTSC: 23*(1/1.0227270) = 22.4888948859 microseconds
-; PAL: 25*(1/1.1108405) = 22.50548121 microseconds
+; timing:
+; NTSC: 23*(1/1.0227270) = 22.4888948859 microseconds
+;  PAL: 25*(1/1.1108405) = 22.5054812100 microseconds
 
 FB6E:   pha                     ;3 timing
         pla                     ;4 timing
@@ -758,9 +755,9 @@ FB6E:   pha                     ;3 timing
         bit     VIA1_PA2        ;4 check CLK
         beq     FB25            ;2/3 if zero, start over
 
-;timing (1 + 14):
-;NTSC: 13*(1/1.0227270) = 14.666670578 microseconds
-; PAL: 15*(1/1.1108405) = 13.503288726 microseconds
+; timing (1 + 14):
+; NTSC: 13*(1/1.0227270) = 14.666670578 microseconds
+;  PAL: 15*(1/1.1108405) = 13.503288726 microseconds
 
         stx     VIA2_PCR        ;4 handshaking - bring serial bus DATA line high
         lda     VIA1_PA2        ;4 read serial bus
@@ -770,9 +767,9 @@ FB6E:   pha                     ;3 timing
         nop                     ;2
 .endif
 
-;timing (12):
-;NTSC: 10*(1/1.0227270) = 11.733336462 microseconds
-; PAL: 12*(1/1.1108405) = 10.802630981 microseconds
+; timing (12):
+; NTSC: 10*(1/1.0227270) = 11.733336462 microseconds
+;  PAL: 12*(1/1.1108405) = 10.802630981 microseconds
 
         and     #$80            ;2 clear the bits we don't care about
         ora     VIA1_PA2        ;4 read serial bus to get next 2 bits
@@ -782,9 +779,9 @@ FB6E:   pha                     ;3 timing
         nop                     ;2
 .endif
 
-;timing: (25)
-;NTSC: 25*(1/1.0227270  = 24.444450963 microseconds
-; PAL: 25*(1/1.1108405) = 22.505481201 microseconds
+; timing: (25)
+; NTSC: 25*(1/1.0227270  = 24.444450963 microseconds
+;  PAL: 25*(1/1.1108405) = 22.505481201 microseconds
 
         sta     $B3             ;3 save first nybble
         lda     VIA1_PA2        ;4 read serial bus again
@@ -795,7 +792,7 @@ FB6E:   pha                     ;3 timing
         rol                     ;2 CLK
         rol                     ;2 DATA
         sta     $C0             ;3 save the other nybble
-;-end of timing sensitive portion
+; end of timing sensitive portion
         lda     #>(FB6E-1)      ; Return address on stack
         pha
         lda     #<(FB6E-1)
@@ -892,13 +889,12 @@ MYSA_E0:
         lda     #LOADSTART
         jsr     PRINT_TOADR_2
 .endif ; SJ20_EXT_MESSAGES
-        ;  jsr PRINT_DISK_ERR
         clc
 MYSA_ERR:
         rts
 .endif ; SJ20_SAVE
 
-        ;PUT NAME TO IEC and UNLISTEN
+        ; PUT NAME TO IEC and UNLISTEN
 IECNAMOUT:
         lda     STATUS
         bmi     DICM_ERR1
@@ -909,7 +905,7 @@ DICM_OK:
         clc
         rts
 
-        ;PUT NAME TO IEC
+        ; PUT NAME TO IEC
 IECNAMOUT_2:
         ldx     FNAM_LEN
         beq     DICM_OK2
