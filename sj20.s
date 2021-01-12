@@ -16,7 +16,6 @@ LOADPTR         = $c3
 LOADSTART       = $ac
 LOADEND         = $ae
 
-STATUS          = $90
 VERCK           = $93
 DFLTN           = $99           ; default input device
 DFLTO           = $9A           ; default output device
@@ -125,12 +124,7 @@ jiffy_listen2:
         lda     #$00
         sta     $A3
         jsr     SEROUT1         ; set IEC data out high (0)
-        cmp     #$3F
-        bne     l6E38           ; branch if not $3F, this branch will always be taken
-
-        jsr     SRCLKHI         ;
-
-l6E38:  lda     VIA1_PA2        ; get VIA 1 DRA, no handshake
+        lda     VIA1_PA2        ; get VIA 1 DRA, no handshake
         ora     #$80            ; set IEC ATN low (1)
         sta     VIA1_PA2        ; set VIA 1 DRA, no handshake
 lEE40:  jsr     SRCLKLO         ; set IEC clock out low
@@ -142,8 +136,9 @@ IEC_send_byte:
         jsr     SEROUT1         ; set serial data out high
         jsr     SERGET          ; get serial clock status
         lsr                     ; shift serial data to Cb
-        bcs     l6EB4           ; Device_Not_Present
-        jsr     SRCLKHI         ; set serial clock high
+        bcc     :+              ;
+        jmp     SRBAD           ; Device_Not_Present
+:       jsr     SRCLKHI         ; set serial clock high
         bit     $A3             ; test EOI flag
         bpl     l6E66           ; branch if not EOI
 
@@ -212,8 +207,6 @@ l6E66:  jsr     SERGET          ; get serial clock status
         pla
         tax
         jmp     $EEA0
-
-l6EB4:  jmp     SRBAD           ;err DEV NOT PRES
 
 .proc jiffy_detect_device
         sta     VIA2_PCR        ; store in serial bus I/O port
@@ -360,7 +353,7 @@ timing:
         bpl     l7C54           ; Jiffy_Set_OK   ; clock = 0 -> OK
         bcc     lfC4f           ; Jiffy_Set_EOI  ; data  = 0 -> EOI
         lda     #$42            ; EOI (6) and time out (1) ($42)
-        jmp     $EEB9           ; Set_IEC_Status ;;ERR staTUS, UNLISTEN
+        jmp     $EEB9           ; Set_IEC_Status
 
 
 send_byte:
@@ -656,7 +649,7 @@ sa1:
 .ifdef SJ20_EXT_MESSAGES
         jsr     PRINT_ATADR
 .else
-        jsr     $f66a            ; Print "LOADING / VERIFYING"
+        jsr     $f66a           ; Print "LOADING / VERIFYING"
 .endif ; SJ20_EXT_MESSAGES
 
         ldx     SECADR
@@ -664,7 +657,7 @@ sa1:
 .ifdef SJ20_BASIC_EXTENSIONS
         dex
         dex
-        bne     @skip            ; SA!=2 -->
+        bne     @skip           ; SA!=2 -->
         ;STORE FIRST TWO BYTES
         ldy     #0
         pla
@@ -879,8 +872,8 @@ MYSA_0:
 
         ldy     #0
 MYSA_00:
-        jsr     $fd11           ;END ADDRESS?
-        bcs     MYSA_E0         ;YES -->
+        jsr     $fd11           ; END ADDRESS?
+        bcs     MYSA_E0         ; YES -->
         lda     (LOADSTART),y
         jsr     send_byte
         jsr     STOP
@@ -928,7 +921,7 @@ IECNAMOUT_2:
         bne     @loop
         rts
 DICM_ERR1:
-        jmp     $f78a           ;ERR 'DEVICE NOT PRESENT'    CF=1
+        jmp     $f78a           ; ERR 'DEVICE NOT PRESENT'    CF=1
 
 DISK_LISTEN:
         pha
