@@ -130,7 +130,6 @@ jiffy_listen2:
 lEE40:  jsr     SRCLKLO         ; set IEC clock out low
         jsr     SEROUT1         ; set IEC data out high (0)
         jsr     $EF96           ; 1ms delay
-
 IEC_send_byte:
         sei
         jsr     SEROUT1         ; set serial data out high
@@ -219,13 +218,13 @@ l6E66:  jsr     SERGET          ; get serial clock status
         lda     #$02            ; test bit 1 (DATA) of serial bus
         ldx     #$20            ; 1e??? wait for jiffy protocol
 @wait:  bit     VIA1_PA2        ; test DATA
-        beq     @wait2          ; data high (0) -> Jiffy signal
+        beq     @jiffy          ; data high (0) -> Jiffy signal
         dex
         bne     @wait
         beq     @no_jiffy       ; no Jiffy device
 
-@wait2: bit     VIA1_PA2
-        beq     @wait2          ; wait for end of Jiffy signal
+@jiffy: bit     VIA1_PA2
+        beq     @jiffy          ; wait for end of Jiffy signal
         lda     $95
         ror
         ror
@@ -341,10 +340,8 @@ get_byte:
         lda     VIA1_PA2        ; get status bits
         stx     VIA2_PCR        ; data out (5) = 1
 ; end of timing sensitive portion
-
         sta     $9C             ; save status bits
         jsr     jiffy_combine_nibbles
-
         sta     $A4             ; received byte
         pla
         tax
@@ -357,7 +354,7 @@ get_byte:
         jmp     $EEB9           ; Set_IEC_Status
 
 
-send_byte:
+.proc send_byte
         bit     $94             ; test deferred character flag
         bmi     @send           ; branch if defered character
         sec                     ; set deferred character flag
@@ -369,6 +366,7 @@ send_byte:
 @out:   sta     $95             ; save as serial defered character
         clc
         rts
+.endproc
 
 
 jiffy_send_byte:
@@ -389,8 +387,7 @@ l7C56:  cli
 
 
 JIFFY_OUT:
-; the bits in BSOUR are sent in the following order %22114334
-
+; the bits in BSOUR are sent in the following order 22114334
         txa             ; store .X on stack
         pha
         lda     $95     ; BSOUR, the byte to send
@@ -517,7 +514,7 @@ JIFFY_OUT:
         jmp     $EEB7           ; no, err TIME OUT
 
 
-jiffy_combine_nibbles:
+.proc jiffy_combine_nibbles
         lda     $B3
         and     #$0F
         sta     $B3
@@ -528,6 +525,7 @@ jiffy_combine_nibbles:
         asl
         ora     $B3
         rts
+.endproc
 
 
 jiffy_untalk:
@@ -578,12 +576,9 @@ stab3_end:
 jiffy_load:                     ; "fnam",PA,SA[,loadadr]
         ldx     DEVNUM          ; PA (device#)
         cpx     #4
-        bcs     MY_IECLOAD_0
+        bcs     :+
         jmp     $f549           ; OLD LOAD PROC
-
-
-MY_IECLOAD_0:
-        sta     VERCK
+:       sta     VERCK
         lda     #0
         sta     LA              ; file# - flag for first byte
         jsr     $f647           ; Print "SEARCHING"
@@ -592,7 +587,6 @@ MY_IECLOAD_0:
         jsr     IECNAMOUT
         bcc     :+
         rts
-
 :       ldy     #$00
         lda     (FNAM),y
         cmp     #'$'
@@ -798,21 +792,21 @@ FB6E:   pha                     ;3 timing
         lda     #<(FB6E-1)
         pha
         jsr     jiffy_combine_nibbles
-
 STOREBYTE:
         cpy     VERCK           ; verify?
-        bne     FBB0            ; yes
+        bne     @verify         ; yes
         sta     ($AE),y         ; no, load, store the byte
-FBA7:   inc     $AE             ; increment low byte of address
+@update_ptr:
+        inc     $AE             ; increment low byte of address
         bne     :+
         inc     $AF             ; increment hi byte of address
 :       rts
-FBB0:   ;VERIFY
+@verify:
         cmp     ($AE),y         ; verify byte
-        beq     FBA7            ; byte is the same, continue
+        beq     @update_ptr     ; byte is the same, continue
         lda     #$10            ; set STATUS
         sta     STATUS
-        bne     FBA7            ; continue verifying
+        bne     @update_ptr     ; continue verifying
 
 .ifdef SJ20_SAVE
 
@@ -868,21 +862,18 @@ MYSA_0:
 .endif ; SJ20_EXT_MESSAGES
 
         ldy     #0
-MYSA_00:
-        jsr     $fd11           ; END ADDRESS?
-        bcs     MYSA_E0         ; YES -->
+@loop:  jsr     $fd11           ; END ADDRESS?
+        bcs     @out            ; YES -->
         lda     (LOADSTART),y
         jsr     send_byte
         jsr     STOP
-        bne     MYSA_02
+        bne     :+
         jsr     jiffy_unlisten
         jsr     DISK_CLOSE_SA
         jmp     $f6ce
-MYSA_02:
-        jsr     $fd1b           ; inc ADDR
-        bne     MYSA_00
-MYSA_E0:
-        jsr     jiffy_unlisten
+:       jsr     $fd1b           ; inc ADDR
+        bne     @loop
+@out:   jsr     jiffy_unlisten
         jsr     DISK_CLOSE_SA
 
 .ifdef SJ20_EXT_MESSAGES
@@ -894,11 +885,13 @@ MYSA_ERR:
         rts
 .endif ; SJ20_SAVE
 
+
         ; PUT NAME TO IEC and UNLISTEN
 IECNAMOUT:
         lda     STATUS
-        bmi     DICM_ERR1
-        jsr     IECNAMOUT_2
+        bpl     :+
+        jmp     $f78a           ; ERR 'DEVICE NOT PRESENT'
+:       jsr     IECNAMOUT_2
 DICM_OK2:
         jsr     jiffy_unlisten
 DICM_OK:
@@ -916,21 +909,19 @@ IECNAMOUT_2:
         dex
         bne     @loop
         rts
-DICM_ERR1:
-        jmp     $f78a           ; ERR 'DEVICE NOT PRESENT'    CF=1
 
 DISK_LISTEN:
         pha
         lda     #0
         sta     STATUS
-        beq     DILI_2
+        .byte $24
 DISK_LISTEN_2:
         pha
-DILI_2: lda     DEVNUM
+        lda     DEVNUM
         jsr     jiffy_listen
         pla
         jsr     jiffy_listensa
-DITA_5: lda     STATUS
+        lda     STATUS
         bpl     DICM_OK
         sec
         rts
@@ -958,15 +949,14 @@ DICL_1:
 .ifdef SJ20_BASIC_EXTENSIONS
         ; GET WORD VALUE IN Y/A and (PT3)
 FRMWORD2:
-        jsr     CHKCOM
-        bcs     FRWO_3
-FRMWORD:
+        jsr     check_comma
+        bcs     :+
         jsr     FRMNUM
         jsr     CNVWORD
         clc
-FRWO_3: rts
+:       rts
 
-CHKCOM:
+.proc check_comma
         jsr     CHRGOT
         cmp     #','
         sec
@@ -974,6 +964,7 @@ CHKCOM:
         jsr     CHRGET
         clc
 :       rts
+.endproc
 .endif ; SJ20_BASIC_EXTENSIONS
 
 .ifdef SJ20_EXT_MESSAGES
@@ -1044,39 +1035,43 @@ MSG_LOAD_TO:
 
 .ifdef SJ20_IO
 
-jiffy_chkin:
+.proc jiffy_chkin
         jsr     FNDFLNO         ; search logical file#
-        beq     @1
+        beq     :+
         jmp     $F784           ; "file not open" error msg
-@1:     jsr     SETFLCH         ; set file param
+:       jsr     SETFLCH         ; set file param
         lda     DEVNUM          ; device#
         cmp     #8
-        bcs     @2
+        bcs     :+
         jmp     $F2D2           ; KERN_CHKIN
-@2:     tax
+:       tax
         jsr     jiffy_talk
         lda     SECADR
-        bpl     @3
+        bpl     :+
         jmp     $F2F8
-@3:     jsr     jiffy_talksa
+:       jsr     jiffy_talksa
         jmp     $F301
+.endproc
 
-jiffy_ckout:
+
+.proc jiffy_ckout
         jsr     FNDFLNO         ; search logical file#
-        beq     @1
+        beq     :+
         jmp     $F784           ; "file not open" error msg
-@1:     jsr     SETFLCH         ; set file param
+:       jsr     SETFLCH         ; set file param
         lda     DEVNUM          ; device#
         cmp     #8
-        bcs     @2
+        bcs     :+
         jmp     $F314           ; KERN_CKOUT
-@2:     tax
+:       tax
         jsr     jiffy_listen
         lda     SECADR
-        bpl     @3
+        bpl     :+
         jmp     $F33A
-@3:     jsr     jiffy_listensa
+:       jsr     jiffy_listensa
         jmp     $F342
+.endproc
+
 
 jiffy_getin:
         lda     DFLTN           ; device# in
@@ -1090,18 +1085,20 @@ jiffy_basin:
         bcs     x2
         jmp     KERN_BASIN
 x2:     lda     STATUS
-        beq     @3
+        beq     :+
         jmp     $F268           ; KERN_BASIN
-@3:     jmp     get_byte
+:       jmp     get_byte
 
-jiffy_bsout:
+.proc jiffy_bsout
         pha
         lda     DFLTO           ; device# out
         cmp     #8
-        bcs     @2
+        bcs     :+
         jmp     $F27B           ; KERN_BSOUT
-@2:     pla
+:       pla
         jmp     send_byte
+.endproc
+
 
 jiffy_clall:
         lda     #0
@@ -1109,11 +1106,11 @@ jiffy_clall:
 jiffy_clrch:
         ldx     #3
         cpx     DFLTO           ; device# out
-        bcs     @1
+        bcs     :+
         jsr     jiffy_unlisten
-@1:     cpx     DFLTN           ; device# in
-        bcs     @2
+:       cpx     DFLTN           ; device# in
+        bcs     :+
         jsr     jiffy_untalk
-@2:     jmp     $f403           ; KERN_CLRCH
+:       jmp     $f403           ; KERN_CLRCH
 
 .endif ; SJ20_IO
